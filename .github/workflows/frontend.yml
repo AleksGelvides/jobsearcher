@@ -67,13 +67,38 @@ jobs:
           if-no-files-found: ignore
 
   docker-build:
+    needs: check
     runs-on: ubuntu-24.04
-    timeout-minutes: 15 # Если скачивание зависимостей или сборка зависнет, GitHub Actions остановит задачу.
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      packages: write
 
     steps:
-      - uses: actions/checkout@v7 # готовый шаг GitHub Actions, который скачивает код репозитория на машину, где выполняется workflow.
+      - uses: actions/checkout@v7
         with:
-          persist-credentials: false # говорит actions/checkout использовать токен GitHub для скачивания репозитория и не сохранять его для последующих команд git.
+          persist-credentials: false
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build frontend Docker image
-        run: docker build --tag jobpilot-frontend:ci ./frontend
+        env:
+          IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/jobpilot-frontend:latest
+        run: |
+          IMAGE_NAME=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          docker build --tag "$IMAGE_NAME" ./frontend
+
+      - name: Push Docker image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/jobpilot-frontend:latest
+        run: |
+          IMAGE_NAME=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          docker push "$IMAGE_NAME"
