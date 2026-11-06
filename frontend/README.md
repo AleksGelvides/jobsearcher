@@ -25,7 +25,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-Эталоны снимков обзора и разбора вакансии записаны на macOS. Playwright использует отдельные эталоны для каждой платформы.
+Playwright использует отдельные эталоны для macOS и Linux. Эталоны Linux записаны в образе `mcr.microsoft.com/playwright:v1.64.1-noble` для `linux/amd64`, который использует GitHub Actions. При обновлении Playwright обновляйте версию образа вместе с пакетом `@playwright/test`.
 
 ## Дизайн и интеграция
 
