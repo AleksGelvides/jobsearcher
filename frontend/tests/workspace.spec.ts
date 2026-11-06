@@ -74,5 +74,7 @@ test("visual regression for the dashboard and vacancy analysis", async ({
     .getByRole("link", { name: /Java Backend Developer Финтех/ })
     .click();
   await expect(page.locator(".detail-title")).toBeVisible();
+  // Keep the pointer away from interactive elements after navigating.
+  await page.mouse.move(0, 0);
   await expect(page).toHaveScreenshot("vacancy-analysis.png");
 });
