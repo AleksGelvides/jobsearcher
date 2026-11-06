@@ -1,0 +1,70 @@
+name: Frontend CI
+
+on:
+  push:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend.yml"
+  pull_request:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    # Playwright's visual baselines are recorded on macOS.
+    runs-on: macos-26
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check TypeScript types
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Run unit tests with coverage
+        run: npm test
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+
+      - name: Run end-to-end and visual tests
+        run: npm run test:e2e
+
+  docker-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15 # Если скачивание зависимостей или сборка зависнет, GitHub Actions остановит задачу.
+
+    steps:
+      - uses: actions/checkout@v7 # готовый шаг GitHub Actions, который скачивает код репозитория на машину, где выполняется workflow.
+        with:
+          persist-credentials: false # говорит actions/checkout использовать токен GitHub для скачивания репозитория и не сохранять его для последующих команд git.
+
+      - name: Build frontend Docker image
+        run: docker build --tag jobpilot-frontend:ci ./frontend
