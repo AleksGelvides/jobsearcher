@@ -1,3 +1,19 @@
 services:
   frontend:
-    image:
+    image: ghcr.io/aleksgelvides/jobpilot-frontend:latest
+    pull_policy: always
+    container_name: jobpilot-frontend
+    ports:
+      - "80:5173"
+    restart: unless-stopped
+
+  keycloak:
+    image: keycloak/keycloak:26.8.1
+    container_name: keycloak
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: temporary-admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: password
+    ports:
+      - "8155:8080"
+    command:
+      - start-dev
