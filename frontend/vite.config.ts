@@ -4,6 +4,14 @@ import tailwind from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwind()],
+  server: {
+    proxy: {
+      "/__jobpilot/aggregator-login": {
+        target: process.env.JOBPILOT_BACKEND_URL ?? "http://localhost:8080",
+        xfwd: true,
+      },
+    },
+  },
   test: {
     include: ["tests/**/*.test.{ts,tsx}"],
     environment: "jsdom",

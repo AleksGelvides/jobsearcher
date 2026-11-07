@@ -7,6 +7,19 @@ services:
       - "80:5173"
     restart: unless-stopped
 
+  backend:
+    build: ../../backend
+    environment:
+      JOBPILOT_BROWSER_LIMIT: "${JOBPILOT_BROWSER_LIMIT:-3}"
+      JOBPILOT_BROWSER_IDLE_TIMEOUT: "${JOBPILOT_BROWSER_IDLE_TIMEOUT:-PT3M}"
+    ports:
+      - "127.0.0.1:${JOBPILOT_BACKEND_PORT:-8080}:8080"
+    shm_size: 256m
+    security_opt:
+      - seccomp=./chromium-seccomp.json
+    stop_grace_period: 40s
+    restart: unless-stopped
+
   keycloak:
     image: keycloak/keycloak:26.8.1
     container_name: keycloak

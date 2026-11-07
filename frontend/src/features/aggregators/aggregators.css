@@ -1,0 +1,262 @@
+.aggregators {
+  margin-top: 22px;
+}
+
+.aggregators > p {
+  margin: 10px 0 12px;
+}
+
+.aggregator-list {
+  display: grid;
+  gap: 14px;
+}
+
+.aggregator-card {
+  display: grid;
+  gap: 3px;
+  padding: 12px 14px;
+  border-radius: 11px;
+  background: var(--color-canvas);
+  text-align: left;
+}
+
+.aggregator-card:hover {
+  background: var(--color-blue-soft);
+}
+
+.aggregator-card span {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.aggregator-dialog {
+  width: min(480px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  overflow: auto;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.aggregator-dialog::backdrop {
+  background: rgb(17 29 55 / 50%);
+}
+
+.aggregator-dialog-content {
+  padding: 24px;
+}
+
+.aggregator-dialog h2 {
+  font-size: 20px;
+}
+
+.aggregator-dialog p {
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.aggregator-dialog .panel-heading {
+  align-items: center;
+}
+
+.aggregator-option {
+  min-height: 40px;
+  padding: 8px 18px;
+  border-radius: 10px;
+  color: var(--color-brand);
+  background: var(--color-canvas);
+  font-weight: 600;
+}
+
+.aggregator-option:hover {
+  background: var(--color-blue-soft);
+}
+
+.aggregator-close {
+  color: var(--color-muted);
+}
+
+.aggregator-login {
+  width: min(800px, calc(100% - 32px));
+}
+
+.aggregator-result h2 {
+  line-height: 24px;
+}
+
+.aggregator-result p {
+  margin: 14px 0;
+  line-height: 16px;
+}
+
+.aggregator-result-continue {
+  min-width: 132px;
+  min-height: 40px;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.aggregator-result-actions > button {
+  min-height: 40px;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.aggregator-result-actions > .aggregator-option {
+  min-width: 116px;
+}
+
+.aggregator-result-actions > .primary {
+  min-width: 190px;
+}
+
+.aggregator-browser {
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+}
+
+.aggregator-address {
+  overflow-wrap: anywhere;
+  padding: 10px 12px;
+  background: var(--color-canvas);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.aggregator-browser-content {
+  min-height: 215px;
+  padding: 24px;
+  text-align: center;
+}
+
+.aggregator-browser-content h3 {
+  margin-top: 44px;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.aggregator-hh {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: -28px;
+  border-radius: 50%;
+  background: #e51824;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.page-automation .connector {
+  min-height: 239px;
+}
+
+.page-automation .connector-grid {
+  grid-template-columns: 1fr;
+}
+
+.page-automation .connector-grid > div {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+}
+
+@media (max-width: 800px) {
+  .page-automation .aggregators {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .aggregator-card {
+    padding: 14px 16px;
+    border-radius: var(--radius-panel);
+    background: var(--color-surface);
+  }
+
+  .aggregator-card strong {
+    font-size: 16px;
+  }
+
+  .aggregator-card span {
+    font-size: 13px;
+  }
+
+  .aggregator-option {
+    min-height: 44px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .aggregator-dialog {
+    width: 100%;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+    background: var(--color-canvas);
+  }
+
+  .aggregator-dialog-content {
+    padding: 20px 16px;
+  }
+
+  .aggregator-dialog.aggregator-result {
+    width: min(480px, calc(100% - 32px));
+    height: fit-content;
+    max-height: calc(100dvh - 32px);
+    border-radius: var(--radius-panel);
+    background: var(--color-surface);
+  }
+
+  .aggregator-dialog.aggregator-result .aggregator-option {
+    width: auto;
+    background: var(--color-canvas);
+  }
+
+  .aggregator-dialog:not(.aggregator-login, .aggregator-result)
+    .aggregator-option {
+    background: var(--color-surface);
+  }
+
+  .aggregator-close {
+    width: auto;
+  }
+
+  .aggregator-login {
+    background: var(--color-surface);
+  }
+
+  .aggregator-login h2 {
+    font-size: 18px;
+  }
+
+  .aggregator-browser {
+    min-height: calc(100dvh - 170px);
+  }
+}
+
+.remote-browser > p {
+  margin: 0;
+  padding: 8px 12px;
+}
+
+.remote-browser-surface {
+  caret-color: transparent;
+  touch-action: none;
+  cursor: default;
+  user-select: none;
+}
+
+.remote-browser canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--color-surface);
+}
+
+.remote-browser-surface:focus-visible {
+  outline-offset: -2px;
+}
