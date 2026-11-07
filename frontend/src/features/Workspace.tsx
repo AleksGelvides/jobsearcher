@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from "react";
+import { Aggregators } from "./aggregators/Aggregators";
+import { useState, type SubmitEvent } from "react";
 import { Chip, Heading, Metrics, Panel } from "../app/ui";
 import type { Application, Candidate, Status, Workspace } from "../model";
 import { money, resumeError } from "./search";
@@ -110,7 +111,7 @@ export function Automation({
   });
   const lastRun = data.runs[0]?.time ?? "—";
 
-  function save(event: FormEvent<HTMLFormElement>) {
+  function save(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
     setSettings({
@@ -123,11 +124,13 @@ export function Automation({
 
   return (
     <>
-      <Heading
-        title="Автоматизация"
-        description="Подключённые площадки, расписание и результаты работы агента."
-      />
-      <Panel className="connector">
+      <div className="desktop-only">
+        <Heading
+          title="Автоматизация"
+          description="Подключённые площадки, расписание и результаты работы агента."
+        />
+      </div>
+      <Panel className="connector desktop-only">
         <div className="panel-heading">
           <div>
             <h2>HH Recruiter</h2>
@@ -152,7 +155,8 @@ export function Automation({
           </div>
         </dl>
       </Panel>
-      <div className="columns automation-columns">
+      <Aggregators />
+      <div className="columns automation-columns desktop-only">
         <Panel className="run-history">
           <h2>История запусков</h2>
           {data.runs.length ? (
@@ -313,7 +317,7 @@ export function Profile({
       .join("") || "Я";
   const fileName = resume?.name ?? original;
 
-  function save(event: FormEvent<HTMLFormElement>) {
+  function save(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
     const updated = { ...candidate };
@@ -344,7 +348,7 @@ export function Profile({
     setPreview(false);
   }
 
-  function addSkill(event: FormEvent<HTMLFormElement>) {
+  function addSkill(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = skill.trim();
     if (

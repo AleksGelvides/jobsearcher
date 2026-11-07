@@ -71,7 +71,12 @@ export function App({ data }: { data: Workspace }) {
     <a
       key={item.path}
       href={`#/${item.path}`}
-      aria-current={page === item.path ? "page" : undefined}
+      aria-current={
+        page === item.path ||
+        (mobile && page === "automation" && item.path === "profile")
+          ? "page"
+          : undefined
+      }
     >
       <span className="nav-icon" aria-hidden="true">
         {mobile ? item.mobileIcon : item.icon}
@@ -172,7 +177,14 @@ export function App({ data }: { data: Workspace }) {
         {page === "automation" && (
           <Automation data={data} active={active} setActive={setActive} />
         )}
-        {page === "profile" && <Profile {...profile} />}
+        {page === "profile" && (
+          <>
+            <Profile {...profile} />
+            <a className="primary mobile-only mt-4" href="#/automation">
+              Агрегаторы вакансий
+            </a>
+          </>
+        )}
         {page === "resumes" && <Profile {...profile} resumesOnly />}
         {page === "settings" && (
           <>
