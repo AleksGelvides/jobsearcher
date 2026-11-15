@@ -9,6 +9,14 @@ export interface Vacancy {
   remote: boolean;
 }
 
+export interface WorkExperience {
+  company: string;
+  role: string;
+  from: string;
+  to: string;
+  description: string;
+}
+
 export interface Candidate {
   name: string;
   role: string;
@@ -18,7 +26,10 @@ export interface Candidate {
   level: string;
   skills: string[];
   experience: string;
+  workExperience?: WorkExperience[];
 }
+
+export type OnboardingAnswers = Omit<Candidate, "name">;
 
 export type Status = "Приглашение" | "На рассмотрении" | "Отказ" | "Отправлено";
 export interface Application {

@@ -188,6 +188,7 @@ test("disconnected workspace starts empty", () => {
       name: "",
       role: "",
       experience: "",
+      workExperience: [],
       salary: 0,
     },
   };
@@ -208,4 +209,24 @@ test("disconnected workspace starts empty", () => {
   expect(screen.getByText("Запусков пока нет.")).toBeDefined();
   route("profile");
   expect(screen.getByText("Добавьте опыт работы.")).toBeDefined();
+});
+
+test("work experience can be expanded, edited and added", () => {
+  render(<App data={demoData} />);
+  route("profile");
+  fireEvent.click(screen.getByText("ЭЛТЕКС", { exact: true }));
+  expect(screen.getByText("Декабрь 2024 — Июль 2026")).toBeDefined();
+  const card = screen.getByText("ЭЛТЕКС", { exact: true }).closest("details")!;
+  const edit = () => fireEvent.click(card.querySelector("button")!);
+  edit();
+  click("Отмена");
+  edit();
+  type("Описание", "Обновлённое описание");
+  click("Сохранить");
+  expect(screen.getByText("Обновлённое описание")).toBeDefined();
+  click("Добавить");
+  type("Название компании", "Новая компания");
+  type("Должность", "Разработчик");
+  click("Сохранить");
+  expect(screen.getByText("Новая компания")).toBeDefined();
 });

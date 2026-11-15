@@ -1,0 +1,137 @@
+.onboarding {
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 36px 16px;
+}
+
+.onboarding-brand,
+.onboarding-step {
+  color: var(--color-brand);
+  font-weight: 700;
+}
+
+.onboarding-brand {
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.onboarding-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: min(100%, 620px);
+  padding: 28px;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+}
+
+.onboarding-intro,
+.onboarding-fields,
+.onboarding-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.onboarding-intro h1 {
+  font-size: 29px;
+}
+
+.onboarding-intro h1:focus {
+  outline: none;
+}
+
+.onboarding-step,
+.onboarding-summary {
+  font-size: 13px;
+}
+
+.onboarding-progress {
+  display: flex;
+  gap: 5px;
+}
+
+.onboarding-progress span {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-line);
+}
+
+.onboarding-progress span.complete {
+  background: var(--color-brand);
+}
+
+.onboarding-fields {
+  gap: 10px;
+}
+
+.onboarding-field {
+  gap: 7px;
+  line-height: 17px;
+}
+
+.onboarding-field input,
+.onboarding-field textarea {
+  width: 100%;
+  min-height: 44px;
+  font-size: 13px;
+}
+
+.onboarding-field textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.onboarding-field input::placeholder,
+.onboarding-field textarea::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+
+.onboarding-summary,
+.onboarding-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.onboarding-summary {
+  justify-content: space-between;
+  padding: 8px;
+  overflow-wrap: anywhere;
+}
+
+.onboarding .action,
+.onboarding .primary {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding-inline: 16px;
+  font-size: 14px;
+}
+
+.onboarding .action {
+  background: var(--color-canvas);
+}
+
+.onboarding-error {
+  color: var(--color-orange-ink);
+}
+
+@media (max-width: 600px) {
+  .onboarding {
+    padding-top: 16px;
+  }
+
+  .onboarding-card {
+    gap: 14px;
+    padding: 20px;
+  }
+
+  .onboarding-intro h1 {
+    font-size: 24px;
+  }
+}

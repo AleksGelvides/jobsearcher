@@ -1,0 +1,148 @@
+@font-face {
+  font-family: Inter;
+  src: url("../fonts/inter-latin-wght-normal.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: Inter;
+  src: url("../fonts/inter-cyrillic-wght-normal.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+:root {
+  --background: #f5f7fb;
+  --brand: #182542;
+  --ink: #18243a;
+  --muted: #53637b;
+  --border: #dce3ef;
+  --accent: #425ad5;
+  color: var(--ink);
+  background: var(--background);
+  font:
+    14px Inter,
+    sans-serif;
+}
+
+html.login-pf,
+.login-pf body {
+  background: var(--background);
+  color: var(--ink);
+  font: 14px Inter, sans-serif;
+}
+
+.login-pf-page {
+  padding: 0 0 24px;
+}
+
+.login-pf-page .login-pf-page-header {
+  display: flex;
+  align-items: center;
+  min-height: 72px;
+  margin: 0;
+  padding: 0 44px;
+  background: var(--brand);
+}
+
+#kc-header-wrapper {
+  padding: 0;
+  color: white;
+  font: 700 23px Inter, sans-serif;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+#kc-header-wrapper::before {
+  content: "◉";
+  margin-right: 9px;
+  color: #bfc9ff;
+}
+
+.login-pf-page .card-pf {
+  width: min(480px, calc(100% - 40px));
+  max-width: none;
+  margin: 88px auto 0;
+  padding: 28px 35px 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: white;
+  box-shadow: none;
+}
+
+.login-pf-page .login-pf-header h1 {
+  margin: 0;
+  text-align: left;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 34px;
+}
+
+.card-pf .pf-c-form__label {
+  display: inline-block;
+  margin-bottom: 8px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.card-pf .pf-c-form-control {
+  min-height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.card-pf .pf-c-input-group .pf-c-form-control {
+  border-radius: 8px 0 0 8px;
+}
+
+.card-pf .pf-c-input-group .pf-m-control {
+  border: 1px solid var(--border);
+  border-radius: 0 8px 8px 0;
+}
+
+.card-pf .pf-m-primary {
+  min-height: 44px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font: 600 14px Inter, sans-serif;
+}
+
+.card-pf a {
+  color: var(--accent);
+}
+
+.card-pf :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.login-pf-page #kc-info {
+  margin: 16px 0 0;
+}
+
+.login-pf-page #kc-info-wrapper {
+  margin: 0;
+  padding: 0 0 4px;
+  line-height: 20px;
+  background: transparent;
+  color: var(--muted);
+}
+
+@media (max-width: 600px) {
+  .login-pf-page .login-pf-page-header {
+    padding-inline: 24px;
+  }
+
+  .login-pf-page .card-pf {
+    margin-top: 36px;
+    padding-inline: 19px;
+  }
+
+  .login-pf-page .login-pf-header h1 {
+    font-size: 23px;
+    line-height: 28px;
+  }
+}

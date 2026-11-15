@@ -16,7 +16,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev -- --host 127.0.0.1 --port 5174 --strictPort",
+    command:
+      "npm run dev -- --mode test --host 127.0.0.1 --port 5174 --strictPort",
     url: "http://127.0.0.1:5174",
   },
 });

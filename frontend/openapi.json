@@ -1,0 +1,1282 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "JobPilot REST API",
+    "version": "0.1.0",
+    "description": "Проект контракта по макетам JobPilot. Операции /api/v1 требуют реализации Spring Boot. Регистрация, вход, подтверждение почты и восстановление пароля выполняются в Keycloak. Маршруты браузерной сессии описаны по существующему клиенту launcher."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "security": [
+    {
+      "jobPilotSession": []
+    }
+  ],
+  "paths": {
+    "/login": {
+      "get": {
+        "operationId": "login",
+        "tags": ["Keycloak"],
+        "summary": "Начать вход через Keycloak",
+        "x-implementation": "existing",
+        "responses": {
+          "302": {
+            "description": "Перенаправление",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "error",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": []
+      }
+    },
+    "/__jobpilot/session": {
+      "get": {
+        "operationId": "session",
+        "tags": ["Keycloak"],
+        "summary": "Проверить сессию JobPilot",
+        "x-implementation": "existing",
+        "responses": {
+          "204": {
+            "description": "Сессия активна"
+          },
+          "401": {
+            "description": "Требуется вход"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/workspace": {
+      "get": {
+        "operationId": "getWorkspace",
+        "tags": ["Workspace"],
+        "summary": "Загрузить данные обзора и рабочего пространства",
+        "x-implementation": "proposed",
+        "responses": {
+          "200": {
+            "description": "Успешный результат",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Workspace"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход"
+          },
+          "403": {
+            "description": "Доступ запрещён или не прошла проверка CSRF"
+          },
+          "default": {
+            "description": "Ошибка API"
+          }
+        }
+      }
+    },
+    "/api/v1/profile": {
+      "put": {
+        "operationId": "saveProfile",
+        "tags": ["Profile"],
+        "summary": "Сохранить профиль, навыки и опыт кандидата",
+        "x-implementation": "proposed",
+        "responses": {
+          "200": {
+            "description": "Успешный результат",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Candidate"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход"
+          },
+          "403": {
+            "description": "Доступ запрещён или не прошла проверка CSRF"
+          },
+          "default": {
+            "description": "Ошибка API"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Candidate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/resumes": {
+      "post": {
+        "operationId": "uploadResume",
+        "tags": ["Resumes"],
+        "summary": "Загрузить основное резюме",
+        "x-implementation": "proposed",
+        "responses": {
+          "201": {
+            "description": "Успешный результат",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resume"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход"
+          },
+          "403": {
+            "description": "Доступ запрещён или не прошла проверка CSRF"
+          },
+          "default": {
+            "description": "Ошибка API"
+          },
+          "413": {
+            "description": "Слишком большой файл"
+          },
+          "415": {
+            "description": "Тип файла не поддерживается"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/vacancies": {
+      "get": {
+        "operationId": "listVacancies",
+        "tags": ["Vacancies"],
+        "summary": "Поиск, фильтрация и пагинация вакансий",
+        "x-implementation": "proposed",
+        "responses": {
+          "200": {
+            "description": "Успешный результат",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VacancyPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход"
+          },
+          "403": {
+            "description": "Доступ запрещён или не прошла проверка CSRF"
+          },
+          "default": {
+            "description": "Ошибка API"
+          }
+        },
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["match", "salary"]
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["remote", "salary", "java", "source"]
+              }
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/vacancies/{vacancyId}": {
+      "get": {
+        "operationId": "getVacancy",
+        "tags": ["Vacancies"],
+        "summary": "Карточка вакансии и результаты анализа",
+        "x-implementation": "proposed",
+        "responses": {
+          "200": {
+            "description": "Успешный результат",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VacancyDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход"
+          },
+          "403": {
+            "description": "Доступ запрещён или не прошла проверка CSRF"
+          },
+          "default": {
+            "description": "Ошибка API"
+          },
+          "404": {
+            "description": "Вакансия недоступна"
+          }
+        },
+        "parameters": [
+          {
+            "name": "vacancyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/vacancies/{vacancyId}/application-draft": {
+      "post": {
+        "operationId": "prepareApplication",
+        "tags": ["Applications"],
+        "summary": "Подготовить резюме и сопроводительное письмо",
+        "x-implementation": "proposed",
+        "responses": {
+          "201": {
+            "description": "Успешный результат",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDraft"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход"
+          },
+          "403": {
+            "description": "Доступ запрещён или не прошла проверка CSRF"
+          },
+          "default": {
+            "description": "Ошибка API"
+          }
+        },
+        "parameters": [
+          {
+            "name": "vacancyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/application-drafts/{draftId}/submit": {
+      "post": {
+        "operationId": "submitApplication",
+        "tags": ["Applications"],
+        "summary": "Подтвердить отправку отклика. Повтор по тому же draftId должен вернуть сохранённый результат без повторной отправки",
+        "x-implementation": "proposed",
+        "responses": {
+          "200": {
+            "description": "Успешный результат",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход"
+          },
+          "403": {
+            "description": "Доступ запрещён или не прошла проверка CSRF"
+          },
+          "default": {
+            "description": "Ошибка API"
+          },
+          "409": {
+            "description": "Отправка уже выполняется"
+          }
+        },
+        "parameters": [
+          {
+            "name": "draftId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["coverLetter"],
+                "properties": {
+                  "coverLetter": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/applications": {
+      "get": {
+        "operationId": "listApplications",
+        "tags": ["Applications"],
+        "summary": "История откликов",
+        "x-implementation": "proposed",
+        "responses": {
+          "200": {
+            "description": "Успешный результат",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Application"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход"
+          },
+          "403": {
+            "description": "Доступ запрещён или не прошла проверка CSRF"
+          },
+          "default": {
+            "description": "Ошибка API"
+          }
+        }
+      }
+    },
+    "/api/v1/automation": {
+      "get": {
+        "operationId": "getAutomation",
+        "tags": ["Automation"],
+        "summary": "Конфигурация и состояние автоматизации",
+        "x-implementation": "proposed",
+        "responses": {
+          "200": {
+            "description": "Успешный результат",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Automation"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход"
+          },
+          "403": {
+            "description": "Доступ запрещён или не прошла проверка CSRF"
+          },
+          "default": {
+            "description": "Ошибка API"
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveAutomation",
+        "tags": ["Automation"],
+        "summary": "Сохранить настройки или запустить и остановить автоматизацию",
+        "x-implementation": "proposed",
+        "responses": {
+          "200": {
+            "description": "Успешный результат",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Automation"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход"
+          },
+          "403": {
+            "description": "Доступ запрещён или не прошла проверка CSRF"
+          },
+          "default": {
+            "description": "Ошибка API"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Automation"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/automation/runs": {
+      "get": {
+        "operationId": "listAutomationRuns",
+        "tags": ["Automation"],
+        "summary": "История запусков",
+        "x-implementation": "proposed",
+        "responses": {
+          "200": {
+            "description": "Успешный результат",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Run"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход"
+          },
+          "403": {
+            "description": "Доступ запрещён или не прошла проверка CSRF"
+          },
+          "default": {
+            "description": "Ошибка API"
+          }
+        }
+      }
+    },
+    "/api/v1/csrf": {
+      "get": {
+        "operationId": "getCsrfToken",
+        "tags": ["Keycloak"],
+        "summary": "Получить CSRF-заголовок для изменений в cookie-сессии",
+        "x-implementation": "proposed",
+        "responses": {
+          "200": {
+            "description": "Успешный результат",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["headerName", "token"],
+                  "properties": {
+                    "headerName": {
+                      "type": "string"
+                    },
+                    "token": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход"
+          },
+          "403": {
+            "description": "Доступ запрещён или не прошла проверка CSRF"
+          },
+          "default": {
+            "description": "Ошибка API"
+          }
+        }
+      }
+    },
+    "/__jobpilot/aggregator-login/hh": {
+      "post": {
+        "operationId": "openHhLogin",
+        "tags": ["Aggregators"],
+        "summary": "Открыть окно входа HH.ru",
+        "x-implementation": "existing",
+        "responses": {
+          "201": {
+            "description": "Сессия браузера создана",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Сессия недоступна"
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-JobPilot-Launcher",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["1"]
+            }
+          }
+        ],
+        "security": []
+      }
+    },
+    "/__jobpilot/aggregator-login/{id}": {
+      "get": {
+        "operationId": "getAggregatorLoginStatus",
+        "tags": ["Aggregators"],
+        "summary": "Результат проверки входа на площадку",
+        "x-implementation": "existing",
+        "responses": {
+          "200": {
+            "description": "Вход подтверждён по сессии браузера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["state"],
+                  "properties": {
+                    "state": {
+                      "type": "string",
+                      "enum": ["confirmed"]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Ожидается подтверждение"
+          },
+          "404": {
+            "description": "Сессия браузера завершилась"
+          },
+          "429": {
+            "description": "Слишком частые запросы"
+          },
+          "default": {
+            "description": "Ошибка браузерной сессии"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-JobPilot-Launcher",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["1"]
+            }
+          }
+        ],
+        "security": []
+      },
+      "delete": {
+        "operationId": "closeAggregatorLogin",
+        "tags": ["Aggregators"],
+        "summary": "Закрыть окно браузера",
+        "x-implementation": "existing",
+        "responses": {
+          "204": {
+            "description": "Сессия закрыта"
+          },
+          "404": {
+            "description": "Сессия браузера завершилась"
+          },
+          "429": {
+            "description": "Слишком частые запросы"
+          },
+          "default": {
+            "description": "Ошибка браузерной сессии"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-JobPilot-Launcher",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["1"]
+            }
+          }
+        ],
+        "security": []
+      }
+    },
+    "/__jobpilot/aggregator-login/{id}/frame": {
+      "get": {
+        "operationId": "readAggregatorLoginFrame",
+        "tags": ["Aggregators"],
+        "summary": "Получить кадр окна браузера",
+        "x-implementation": "existing",
+        "responses": {
+          "200": {
+            "description": "Кадр",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Сессия браузера завершилась"
+          },
+          "429": {
+            "description": "Слишком частые запросы"
+          },
+          "default": {
+            "description": "Ошибка браузерной сессии"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-JobPilot-Launcher",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["1"]
+            }
+          }
+        ],
+        "security": []
+      }
+    },
+    "/__jobpilot/aggregator-login/{id}/input": {
+      "post": {
+        "operationId": "sendAggregatorLoginInput",
+        "tags": ["Aggregators"],
+        "summary": "Передать пользовательский ввод окну браузера",
+        "x-implementation": "existing",
+        "responses": {
+          "204": {
+            "description": "Ввод принят"
+          },
+          "404": {
+            "description": "Сессия браузера завершилась"
+          },
+          "429": {
+            "description": "Слишком частые запросы"
+          },
+          "default": {
+            "description": "Ошибка браузерной сессии"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-JobPilot-Launcher",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["1"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserInput"
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/__jobpilot/aggregator-login/{id}/copy": {
+      "post": {
+        "operationId": "copyAggregatorLoginSelection",
+        "tags": ["Aggregators"],
+        "summary": "Получить выделенный пользователем текст",
+        "x-implementation": "existing",
+        "responses": {
+          "200": {
+            "description": "Выделенный текст",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Сессия браузера завершилась"
+          },
+          "429": {
+            "description": "Слишком частые запросы"
+          },
+          "default": {
+            "description": "Ошибка браузерной сессии"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-JobPilot-Launcher",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["1"]
+            }
+          }
+        ],
+        "security": []
+      }
+    },
+    "/api/v1/onboarding": {
+      "post": {
+        "operationId": "submitOnboarding",
+        "tags": ["Profile"],
+        "summary": "Сохранить ответы квиза «Первое знакомство»",
+        "x-implementation": "proposed",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingAnswers"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Ответы сохранены"
+          },
+          "401": {
+            "description": "Требуется вход"
+          },
+          "403": {
+            "description": "Доступ запрещён или не прошла проверка CSRF"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "jobPilotSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "JSESSIONID"
+      }
+    },
+    "schemas": {
+      "Experience": {
+        "type": "object",
+        "required": ["company", "role", "from", "to", "description"],
+        "properties": {
+          "company": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "Candidate": {
+        "type": "object",
+        "required": [
+          "name",
+          "role",
+          "city",
+          "arrangement",
+          "salary",
+          "level",
+          "skills",
+          "experience"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "arrangement": {
+            "type": "string"
+          },
+          "salary": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "level": {
+            "type": "string"
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "experience": {
+            "type": "string"
+          },
+          "workExperience": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Experience"
+            }
+          }
+        }
+      },
+      "Vacancy": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "company",
+          "salary",
+          "skills",
+          "source",
+          "remote"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "salary": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": "string"
+          },
+          "remote": {
+            "type": "boolean"
+          },
+          "score": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          }
+        }
+      },
+      "VacancyDetails": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Vacancy"
+          },
+          {
+            "type": "object",
+            "required": [],
+            "properties": {
+              "analysis": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["title", "description"],
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "VacancyPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Vacancy"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        }
+      },
+      "Application": {
+        "type": "object",
+        "required": ["title", "company", "status", "date", "source", "resume"],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Приглашение", "На рассмотрении", "Отказ", "Отправлено"]
+          },
+          "date": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "resume": {
+            "type": "string"
+          }
+        }
+      },
+      "ApplicationDraft": {
+        "type": "object",
+        "required": ["id", "resumeName", "coverLetter"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "resumeName": {
+            "type": "string"
+          },
+          "coverLetter": {
+            "type": "string"
+          }
+        }
+      },
+      "Automation": {
+        "type": "object",
+        "required": ["active", "salary", "schedule", "mode"],
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "salary": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "schedule": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          }
+        }
+      },
+      "Run": {
+        "type": "object",
+        "required": ["time", "found", "sent", "result"],
+        "properties": {
+          "time": {
+            "type": "string"
+          },
+          "found": {
+            "type": "string"
+          },
+          "sent": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string",
+            "enum": ["Успешно", "Без новых", "Нужен вход"]
+          }
+        }
+      },
+      "Workspace": {
+        "type": "object",
+        "required": [
+          "candidate",
+          "vacancies",
+          "applications",
+          "runs",
+          "resume",
+          "automation"
+        ],
+        "properties": {
+          "candidate": {
+            "$ref": "#/components/schemas/Candidate"
+          },
+          "vacancies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Vacancy"
+            }
+          },
+          "applications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Application"
+            }
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Run"
+            }
+          },
+          "resume": {
+            "type": "string"
+          },
+          "automation": {
+            "$ref": "#/components/schemas/Automation"
+          }
+        }
+      },
+      "Resume": {
+        "type": "object",
+        "required": ["fileName"],
+        "properties": {
+          "fileName": {
+            "type": "string"
+          }
+        }
+      },
+      "BrowserInput": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type", "value"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["text", "key", "paste"]
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type", "x", "y"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["click", "down", "up", "move"]
+              },
+              "x": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "y": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type", "x", "y", "deltaX", "deltaY"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["wheel"]
+              },
+              "x": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "y": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "deltaX": {
+                "type": "number"
+              },
+              "deltaY": {
+                "type": "number"
+              }
+            }
+          }
+        ]
+      },
+      "OnboardingAnswers": {
+        "type": "object",
+        "required": [
+          "role",
+          "city",
+          "arrangement",
+          "salary",
+          "level",
+          "skills",
+          "experience"
+        ],
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "arrangement": {
+            "type": "string"
+          },
+          "salary": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "level": {
+            "type": "string"
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "experience": {
+            "type": "string"
+          },
+          "workExperience": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Experience"
+            }
+          }
+        }
+      }
+    }
+  }
+}
