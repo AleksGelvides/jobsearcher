@@ -1,0 +1,50 @@
+{
+  "realm": "jobpilot",
+  "enabled": true,
+  "displayName": "JobPilot",
+  "loginTheme": "jobpilot",
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "ru"
+  ],
+  "defaultLocale": "ru",
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "registrationAllowed": true,
+  "verifyEmail": true,
+  "passwordPolicy": "length(8) and maxLength(256) and regexPattern((?=.*[A-Za-z])(?=.*[0-9])(?=.*[\\p{Punct}]).*)",
+  "bruteForceProtected": true,
+  "accessCodeLifespanLogin": 1800,
+  "accessCodeLifespanUserAction": 900,
+  "smtpServer": {
+    "host": "${JOBPILOT_SMTP_HOST}",
+    "port": "${JOBPILOT_SMTP_PORT}",
+    "from": "${JOBPILOT_SMTP_FROM}",
+    "fromDisplayName": "JobPilot",
+    "auth": "${JOBPILOT_SMTP_AUTH}",
+    "user": "${JOBPILOT_SMTP_USER}",
+    "password": "${JOBPILOT_SMTP_PASSWORD}",
+    "starttls": "${JOBPILOT_SMTP_STARTTLS}",
+    "ssl": "${JOBPILOT_SMTP_SSL}"
+  },
+  "clients": [
+    {
+      "clientId": "jobpilot",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "redirectUris": [
+        "${JOBPILOT_OIDC_CALLBACK}",
+        "${JOBPILOT_OIDC_DEV_CALLBACK}"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ],
+  "registrationEmailAsUsername": true
+}

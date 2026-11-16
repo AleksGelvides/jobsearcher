@@ -146,8 +146,30 @@ export const demoData: Workspace = {
       "Maven",
       "Git",
     ],
-    experience:
-      "ЭЛТЕКС · Kotlin Backend Developer\nМикросервисы, архитектура, отказоустойчивость\n\nЛАНИТ · Java Developer\nСервисы отчётности, REST/SOAP, оптимизация SQL\n\nNexign · L3 Support Engineer\nДиагностика инцидентов и интеграций",
+    experience: "",
+    workExperience: [
+      {
+        company: "ЭЛТЕКС",
+        role: "Kotlin Backend Developer",
+        from: "Декабрь 2024",
+        to: "Июль 2026",
+        description: "Микросервисы, архитектура, отказоустойчивость",
+      },
+      {
+        company: "ЛАНИТ",
+        role: "Java Developer",
+        from: "Сентябрь 2022",
+        to: "Ноябрь 2024",
+        description: "Сервисы отчётности, REST/SOAP, оптимизация SQL",
+      },
+      {
+        company: "Nexign",
+        role: "L3 Support Engineer",
+        from: "Март 2022",
+        to: "Август 2022",
+        description: "Диагностика инцидентов и интеграций",
+      },
+    ],
   },
   vacancies,
   applications,

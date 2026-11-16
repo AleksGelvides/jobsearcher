@@ -1,4 +1,10 @@
+import { Onboarding } from "../features/onboarding/Onboarding";
 import { useEffect, useState } from "react";
+import {
+  api,
+  type AutomationSettings,
+  type VacancyDetails,
+} from "../lib/api/client";
 import type { Workspace } from "../model";
 import { Dashboard, Vacancies, VacancyDetail } from "../features/Jobs";
 import { Applications, Automation, Profile } from "../features/Workspace";
@@ -34,11 +40,19 @@ const navigation = [
 
 const readRoute = () => window.location.hash.replace(/^#\/?/, "");
 
-export function App({ data }: { data: Workspace }) {
+export function App({
+  data,
+  live = false,
+  firstRun = false,
+}: {
+  data: Workspace & { automation?: AutomationSettings };
+  live?: boolean;
+  firstRun?: boolean;
+}) {
   const [route, setRoute] = useState(readRoute);
   const [candidate, setCandidate] = useState(data.candidate);
   const [resume, setResume] = useState<File | null>(null);
-  const [active, setActive] = useState(data.demo);
+  const [active, setActive] = useState(data.automation?.active ?? data.demo);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
@@ -51,7 +65,26 @@ export function App({ data }: { data: Workspace }) {
   }, []);
 
   const [page, vacancyId] = route.split("/");
-  const vacancy = data.vacancies.find(({ id }) => id === vacancyId);
+  const [detail, setDetail] = useState<{
+    id: string;
+    vacancy?: VacancyDetails;
+  }>();
+  useEffect(() => {
+    if (!live || page !== "vacancies" || !vacancyId) return;
+    const controller = new AbortController();
+    api.vacancy(vacancyId, controller.signal).then(
+      (vacancy) => {
+        if (!controller.signal.aborted) setDetail({ id: vacancyId, vacancy });
+      },
+      () => {
+        if (!controller.signal.aborted) setDetail({ id: vacancyId });
+      },
+    );
+    return () => controller.abort();
+  }, [live, page, vacancyId]);
+  const vacancy = live
+    ? detail?.vacancy
+    : data.vacancies.find(({ id }) => id === vacancyId);
   const initials =
     candidate.name
       .trim()
@@ -61,11 +94,20 @@ export function App({ data }: { data: Workspace }) {
       .join("") || "Я";
   const profile = {
     candidate,
-    setCandidate,
+    setCandidate: live
+      ? async (value: typeof candidate) =>
+          setCandidate(await api.saveProfile(value))
+      : setCandidate,
     resume,
-    setResume,
+    setResume: live
+      ? async (file: File) => {
+          await api.uploadResume(file);
+          setResume(file);
+        }
+      : setResume,
     original: data.resume,
     demo: data.demo,
+    live,
   };
   const navLink = (item: (typeof navigation)[number], mobile = false) => (
     <a
@@ -84,6 +126,20 @@ export function App({ data }: { data: Workspace }) {
       {mobile ? item.mobile : item.label}
     </a>
   );
+
+  if (firstRun && !candidate.role.trim()) {
+    return (
+      <Onboarding
+        candidate={candidate}
+        onSave={async (answers) => {
+          await api.submitOnboarding(answers);
+          setCandidate((current) => ({ ...current, ...answers }));
+          window.location.hash = "/profile";
+          setRoute("profile");
+        }}
+      />
+    );
+  }
 
   return (
     <>
@@ -148,17 +204,22 @@ export function App({ data }: { data: Workspace }) {
           <div className="workspace-popover panel" role="status">
             {data.demo
               ? "Демонстрационное рабочее пространство"
-              : "Сервер не подключён"}
+              : live
+                ? "Рабочее пространство JobPilot"
+                : "Сервер не подключён"}
           </div>
         )}
         {page === "" && <Dashboard data={data} active={active} />}
         {page === "vacancies" &&
           (vacancyId ? (
-            vacancy ? (
+            live && detail?.id !== vacancyId ? (
+              <p role="status">Загрузка вакансии…</p>
+            ) : vacancy ? (
               <VacancyDetail
                 key={vacancy.id}
                 vacancy={vacancy}
                 demo={data.demo}
+                live={live}
               />
             ) : (
               <Panel>
@@ -169,13 +230,22 @@ export function App({ data }: { data: Workspace }) {
               </Panel>
             )
           ) : (
-            <Vacancies vacancies={data.vacancies} demo={data.demo} />
+            <Vacancies
+              vacancies={data.vacancies}
+              demo={data.demo}
+              live={live}
+            />
           ))}
         {page === "applications" && (
           <Applications applications={data.applications} demo={data.demo} />
         )}
         {page === "automation" && (
-          <Automation data={data} active={active} setActive={setActive} />
+          <Automation
+            data={data}
+            active={active}
+            setActive={setActive}
+            live={live}
+          />
         )}
         {page === "profile" && (
           <>

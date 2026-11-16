@@ -34,19 +34,52 @@ Playwright использует отдельные эталоны для macOS �
 - Загрузка в демо ограничена выбором PDF или DOCX до 10 МБ и просмотром сведений о файле. История резюме, обработка документов, генерация, публикация профиля, отправка откликов и выполнение задач автоматизации требуют серверной интеграции.
 - Для подключения сервера нужны согласованные контракты профиля и документов, идентификаторы и ссылки публикаций, результаты анализа, статусы и ошибки откликов, а также статусы подключений и запусков автоматизации.
 
-## Вход на площадки
+## Запуск JobPilot в Docker
 
 Запустите frontend и backend из корня репозитория.
 
 ```sh
 mvn -f backend/pom.xml -pl application -am package
-docker compose -f deploy/docker/docker-compose.yaml up --build -d frontend backend
+docker compose -f deploy/docker/docker-compose.yaml up --build -d frontend backend keycloak
 ```
-
-При сборке образа backend Docker скачивает Chromium Headless Shell. Он нужен удалённому окну входа. Если порт `8080` занят, задайте `JOBPILOT_BACKEND_PORT=18080` перед командой `docker compose`. Nginx продолжит обращаться к внутреннему порту контейнера `8080`.
-
-Откройте `http://localhost` и выберите HH.ru в «Автоматизация → Агрегаторы вакансий». На мобильной версии раздел доступен из профиля. Удалённый Chromium открывается сразу, а вход на самой площадке выполняется в модальном окне.
 
 Для разработки запустите backend и выполните `npm run dev` в `frontend`. Vite направляет запросы на `http://localhost:8080`. Другой адрес backend можно задать через `JOBPILOT_BACKEND_URL`.
 
-Chromium запускается в backend с включённой песочницей. Сеанс изолирован по технической cookie веб-сессии. Лимит и тайм-аут без ввода задаются через `JOBPILOT_BROWSER_LIMIT` и `JOBPILOT_BROWSER_IDLE_TIMEOUT`. Сервисы запускаются на loopback для локальной разработки.
+## Вход в JobPilot через Keycloak
+
+В Docker откройте `http://localhost/login`. Перед запуском задайте SMTP через переменные окружения `JOBPILOT_SMTP_HOST`, `JOBPILOT_SMTP_PORT`, `JOBPILOT_SMTP_FROM`, а для SMTP с авторизацией также `JOBPILOT_SMTP_AUTH=true`, `JOBPILOT_SMTP_USER` и `JOBPILOT_SMTP_PASSWORD`. Для защищённого соединения включите `JOBPILOT_SMTP_STARTTLS` или `JOBPILOT_SMTP_SSL` согласно настройкам SMTP-сервера.
+
+```bash
+mvn -f backend/pom.xml -pl application -am package
+docker compose -f deploy/docker/docker-compose.yaml up --build -d frontend backend keycloak
+```
+
+При первом запуске образ Keycloak импортирует realm `jobpilot` из `../deploy/keycloak/jobpilot-realm.json`. На форме Keycloak можно войти по email и паролю, зарегистрироваться и восстановить пароль. При регистрации Keycloak присылает ссылку для подтверждения email.
+
+Если realm уже существует, Keycloak пропускает импорт. Перед переходом со старого расширения в админке привяжите штатный поток `browser` к Browser flow, выберите тему входа `jobpilot` и включите регистрацию, email как имя пользователя и подтверждение email. Существующие пользователи, пароли, настройки SMTP и клиент OIDC остаются в PostgreSQL. При наличии старых потоков `jobpilot-browser` и `jobpilot-email` их можно удалить после переключения.
+
+Для Vite запустите бэкенд на `localhost:8080` с callback по умолчанию и откройте `http://localhost:5173/login`. С Docker-бэкендом для этого задайте `JOBPILOT_OIDC_CALLBACK=http://localhost:5173/login/oauth2/code/keycloak` перед запуском. Vite использует `JOBPILOT_BACKEND_URL`, если бэкенд работает на другом порту.
+
+Для развёртывания за HTTPS задайте публичные `JOBPILOT_KEYCLOAK_URL` и `JOBPILOT_OIDC_CALLBACK`, включите `JOBPILOT_SECURE_SESSION_COOKIE=true` и внесите точный callback в клиент Keycloak. Текущий Compose запускает Keycloak в режиме локальной разработки.
+
+Для существующего realm обновите **Authentication → Policies → Password policy** по полю `passwordPolicy` в `../deploy/keycloak/jobpilot-realm.json`. Правило действует при регистрации и смене пароля. Ранее созданные пароли продолжают работать.
+
+Для локального подтверждения почты через Mailpit подключите его к той же сети Docker, что и Keycloak. В существующем realm `jobpilot` откройте **Realm settings → Email** и укажите хост `mailpit` и порт `1025`. Письма появятся в Mailpit на `http://127.0.0.1:8025`. Для первого импорта realm те же значения можно передать через `JOBPILOT_SMTP_HOST` и `JOBPILOT_SMTP_PORT`. При перезапуске Keycloak пропускает импорт уже существующего realm.
+
+## REST-контракт JobPilot
+
+[OpenAPI 3.1](openapi.json) описывает операции для обзора, профиля и опыта,
+резюме, вакансий и анализа, подготовки и отправки отклика, истории и
+автоматизации. Операции `/api/v1` имеют пометку `proposed` до реализации в
+Spring. Вход, регистрация и восстановление пароля остаются в Keycloak.
+Подключение hh.ru использует существующий протокол браузерного launcher.
+
+Для проверки интеграции запустите фронтенд с
+`VITE_JOBPILOT_API=live npm run dev`. Vite отправляет запросы на
+`JOBPILOT_BACKEND_URL` (по умолчанию `http://localhost:8080`). Для Docker
+передайте `--build-arg VITE_JOBPILOT_API=live`. В режиме live сервер должен
+реализовать `/api/v1/workspace`, отдавать JSON и предоставлять
+`/api/v1/csrf` для запросов записи в сессии Spring Security. Повторный запрос
+отправки с тем же ID черновика должен возвращать исходный результат.
+
+Мок-режим остаётся доступен для разработки и тестов макетов.

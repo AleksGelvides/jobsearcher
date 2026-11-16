@@ -10,23 +10,67 @@ services:
   backend:
     build: ../../backend
     environment:
-      JOBPILOT_BROWSER_LIMIT: "${JOBPILOT_BROWSER_LIMIT:-3}"
-      JOBPILOT_BROWSER_IDLE_TIMEOUT: "${JOBPILOT_BROWSER_IDLE_TIMEOUT:-PT3M}"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/jobsearcher
+      JOBPILOT_OIDC_ISSUER: "${JOBPILOT_KEYCLOAK_URL:-http://localhost:8155}/realms/jobpilot"
+      JOBPILOT_OIDC_INTERNAL_ISSUER: http://keycloak:8080/realms/jobpilot
+      JOBPILOT_OIDC_CALLBACK: "${JOBPILOT_OIDC_CALLBACK:-http://localhost/login/oauth2/code/keycloak}"
+      JOBPILOT_SECURE_SESSION_COOKIE: "${JOBPILOT_SECURE_SESSION_COOKIE:-false}"
     ports:
       - "127.0.0.1:${JOBPILOT_BACKEND_PORT:-8080}:8080"
-    shm_size: 256m
-    security_opt:
-      - seccomp=./chromium-seccomp.json
     stop_grace_period: 40s
     restart: unless-stopped
 
   keycloak:
-    image: keycloak/keycloak:26.8.1
+    build: ../keycloak
+    depends_on:
+      postgres:
+        condition: service_healthy
     container_name: keycloak
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: temporary-admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: password
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: your_secure_password
+      KC_HOSTNAME: "${JOBPILOT_KEYCLOAK_URL:-http://localhost:8155}"
+      JOBPILOT_OIDC_CALLBACK: "${JOBPILOT_OIDC_CALLBACK:-http://localhost/login/oauth2/code/keycloak}"
+      JOBPILOT_OIDC_DEV_CALLBACK: "${JOBPILOT_OIDC_DEV_CALLBACK:-http://localhost:5173/login/oauth2/code/keycloak}"
+      JOBPILOT_SMTP_HOST: "${JOBPILOT_SMTP_HOST:-localhost}"
+      JOBPILOT_SMTP_PORT: "${JOBPILOT_SMTP_PORT:-25}"
+      JOBPILOT_SMTP_FROM: "${JOBPILOT_SMTP_FROM:-noreply@jobpilot.local}"
+      JOBPILOT_SMTP_AUTH: "${JOBPILOT_SMTP_AUTH:-false}"
+      JOBPILOT_SMTP_USER: "${JOBPILOT_SMTP_USER:-}"
+      JOBPILOT_SMTP_PASSWORD: "${JOBPILOT_SMTP_PASSWORD:-}"
+      JOBPILOT_SMTP_STARTTLS: "${JOBPILOT_SMTP_STARTTLS:-false}"
+      JOBPILOT_SMTP_SSL: "${JOBPILOT_SMTP_SSL:-false}"
     ports:
       - "8155:8080"
     command:
       - start-dev
+      - --import-realm
+
+  postgres:
+    build: ../postgresql
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres_user
+      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_DB: postgres_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data/pgdata
+      - ../postgresql/init-scripts:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres_user -d postgres_db" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+
+volumes:
+  pgdata:

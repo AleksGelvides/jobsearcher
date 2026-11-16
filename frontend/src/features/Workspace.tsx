@@ -1,3 +1,5 @@
+import { api, type AutomationSettings } from "../lib/api/client";
+import { Experience } from "./Experience";
 import { Aggregators } from "./aggregators/Aggregators";
 import { useState, type SubmitEvent } from "react";
 import { Chip, Heading, Metrics, Panel } from "../app/ui";
@@ -98,32 +100,57 @@ export function Automation({
   data,
   active,
   setActive,
+  live = false,
 }: {
-  data: Workspace;
+  data: Workspace & { automation?: AutomationSettings };
+  live?: boolean;
   active: boolean;
   setActive: (active: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [settings, setSettings] = useState({
-    salary: 200000,
-    schedule: "Каждый час",
-    mode: "После проверки",
-  });
+  const [settings, setSettings] = useState(
+    data.automation ?? {
+      salary: 200000,
+      schedule: "Каждый час",
+      mode: "После проверки",
+    },
+  );
   const lastRun = data.runs[0]?.time ?? "—";
 
-  function save(event: SubmitEvent<HTMLFormElement>) {
+  const [pending, setPending] = useState(false);
+  const [requestError, setRequestError] = useState(false);
+  async function update(next: AutomationSettings) {
+    if (pending) return;
+    setRequestError(false);
+    setPending(true);
+    try {
+      const saved = live ? await api.saveAutomation(next) : next;
+      setSettings(saved);
+      setActive(saved.active);
+      setEditing(false);
+    } catch {
+      setRequestError(true);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function save(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
-    setSettings({
+    void update({
+      active,
       salary: Number(fields.get("salary")),
       schedule: String(fields.get("schedule")),
       mode: settings.mode,
     });
-    setEditing(false);
   }
 
   return (
     <>
+      {requestError && (
+        <p role="alert">Не удалось сохранить настройки автоматизации.</p>
+      )}
       <div className="desktop-only">
         <Heading
           title="Автоматизация"
@@ -261,12 +288,18 @@ export function Automation({
               </button>
               <button
                 className="action"
-                disabled={!data.demo}
-                onClick={() => setActive(!active)}
+                disabled={pending || (!data.demo && !live)}
+                onClick={() => void update({ ...settings, active: !active })}
               >
-                {active ? "Остановить демо" : "Запустить демо"}
+                {live
+                  ? active
+                    ? "Остановить"
+                    : "Запустить"
+                  : active
+                    ? "Остановить демо"
+                    : "Запустить демо"}
               </button>
-              {!data.demo && (
+              {!data.demo && !live && (
                 <small>Запуск доступен после подключения сервера.</small>
               )}
             </>
@@ -279,9 +312,10 @@ export function Automation({
 
 interface ProfileProps {
   candidate: Candidate;
-  setCandidate: (candidate: Candidate) => void;
+  setCandidate: (candidate: Candidate) => void | Promise<void>;
   resume: File | null;
-  setResume: (file: File) => void;
+  setResume: (file: File) => void | Promise<void>;
+  live?: boolean;
   original: string;
   demo: boolean;
   resumesOnly?: boolean;
@@ -302,6 +336,7 @@ export function Profile({
   original,
   demo,
   resumesOnly,
+  live = false,
 }: ProfileProps) {
   const [editing, setEditing] = useState(false);
   const [publicView, setPublicView] = useState(false);
@@ -317,7 +352,7 @@ export function Profile({
       .join("") || "Я";
   const fileName = resume?.name ?? original;
 
-  function save(event: SubmitEvent<HTMLFormElement>) {
+  async function save(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
     const updated = { ...candidate };
@@ -329,13 +364,15 @@ export function Profile({
     }
     updated.salary = Number(fields.get("salary"));
     updated.experience = String(fields.get("experience")).trim();
-    setCandidate(updated);
+    if (live) {
+      if (!(await persist(() => setCandidate(updated)))) return;
+    } else setCandidate(updated);
     setEditing(false);
     setError("");
-    setMessage("Профиль обновлён в этой сессии.");
+    setMessage(live ? "Профиль сохранён." : "Профиль обновлён в этой сессии.");
   }
 
-  function upload(file?: File) {
+  async function upload(file?: File) {
     if (!file) return;
     const issue = resumeError(file);
     setError(issue);
@@ -343,12 +380,16 @@ export function Profile({
       setMessage("");
       return;
     }
-    setResume(file);
-    setMessage("Основное резюме обновлено в этой сессии.");
+    if (live) {
+      if (!(await persist(() => setResume(file)))) return;
+    } else setResume(file);
+    setMessage(
+      live ? "Резюме загружено." : "Основное резюме обновлено в этой сессии.",
+    );
     setPreview(false);
   }
 
-  function addSkill(event: SubmitEvent<HTMLFormElement>) {
+  async function addSkill(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = skill.trim();
     if (
@@ -358,8 +399,28 @@ export function Profile({
       )
     )
       return;
-    setCandidate({ ...candidate, skills: [...candidate.skills, value] });
+    const updated = { ...candidate, skills: [...candidate.skills, value] };
+    if (live) {
+      if (!(await persist(() => setCandidate(updated)))) return;
+    } else setCandidate(updated);
     setSkill("");
+  }
+
+  const [saving, setSaving] = useState(false);
+  async function persist(action: () => void | Promise<void>) {
+    if (saving) return false;
+    setSaving(true);
+    setError("");
+    setMessage("");
+    try {
+      await action();
+      return true;
+    } catch {
+      setError("Не удалось сохранить изменения. Попробуйте снова.");
+      return false;
+    } finally {
+      setSaving(false);
+    }
   }
 
   const resumePanel = (
@@ -532,8 +593,9 @@ export function Profile({
                   </label>
                 </div>
                 <label>
-                  Опыт работы
+                  Моя профессиональная история
                   <textarea
+                    placeholder="Подробное описание ваше профессиональной жизни. Какие проблемы решали, как решали и прочее..."
                     name="experience"
                     rows={5}
                     defaultValue={candidate.experience}
@@ -617,33 +679,14 @@ export function Profile({
                     <button className="action">+ Добавить навык</button>
                   </form>
                 </Panel>
-                <Panel className="experience">
-                  <div className="panel-heading">
-                    <h2>Опыт работы</h2>
-                    <button className="action" onClick={() => setEditing(true)}>
-                      Редактировать
-                    </button>
-                  </div>
-                  {candidate.experience ? (
-                    <ul>
-                      {candidate.experience
-                        .split(/\n\n/)
-                        .map((entry, index) => {
-                          const [title, ...description] = entry.split("\n");
-                          return (
-                            <li key={index}>
-                              <strong>{title}</strong>
-                              {description.length > 0 && (
-                                <p>{description.join(" ")}</p>
-                              )}
-                            </li>
-                          );
-                        })}
-                    </ul>
-                  ) : (
-                    <p>Добавьте опыт работы.</p>
-                  )}
-                </Panel>
+                <Experience
+                  entries={candidate.workExperience ?? []}
+                  onSave={(workExperience) => {
+                    const updated = { ...candidate, workExperience };
+                    if (live) return persist(() => setCandidate(updated));
+                    void setCandidate(updated);
+                  }}
+                />
                 <Panel className="privacy desktop-only">
                   <h2>Доступ к данным</h2>
                   <p>Резюме доступно только вам и выбранным интеграциям.</p>

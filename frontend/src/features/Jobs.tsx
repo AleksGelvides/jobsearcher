@@ -1,4 +1,9 @@
-import { useState } from "react";
+import {
+  api,
+  type ApplicationDraft,
+  type VacancyDetails,
+} from "../lib/api/client";
+import { useEffect, useRef, useState } from "react";
 import { Chip, Heading, Metrics, Panel } from "../app/ui";
 import type { Vacancy, Workspace } from "../model";
 import { salary, searchVacancies, type Filter, type Sort } from "./search";
@@ -179,8 +184,10 @@ const starterIds = [
 export function Vacancies({
   vacancies,
   demo,
+  live = false,
 }: {
   vacancies: Vacancy[];
+  live?: boolean;
   demo: boolean;
 }) {
   const [input, setInput] = useState(demo ? "Java Backend Developer" : "");
@@ -188,9 +195,37 @@ export function Vacancies({
   const [filters, setFilters] = useState<Filter[]>([]);
   const [sort, setSort] = useState<Sort>("match");
   const initial = demo && !query && !filters.length && sort === "match";
-  const visible = initial
-    ? vacancies.filter(({ id }) => starterIds.includes(id))
-    : searchVacancies(vacancies, query, filters, sort);
+  const [result, setResult] = useState<{
+    key: string;
+    items?: Vacancy[];
+    nextCursor?: string;
+  }>();
+  const [cursor, setCursor] = useState<string>();
+  const [attempt, setAttempt] = useState(0);
+  const params = new URLSearchParams({ q: query, sort });
+  filters.forEach((filter) => params.append("filter", filter));
+  if (cursor) params.set("cursor", cursor);
+  const key = params.toString();
+  useEffect(() => {
+    if (!live) return;
+    const controller = new AbortController();
+    api.vacancies(new URLSearchParams(key), controller.signal).then(
+      ({ items, nextCursor }) => {
+        if (!controller.signal.aborted) setResult({ key, items, nextCursor });
+      },
+      () => {
+        if (!controller.signal.aborted) setResult({ key });
+      },
+    );
+    return () => controller.abort();
+  }, [live, key, attempt]);
+  const visible = live
+    ? result?.key === key
+      ? (result.items ?? [])
+      : []
+    : initial
+      ? vacancies.filter(({ id }) => starterIds.includes(id))
+      : searchVacancies(vacancies, query, filters, sort);
 
   return (
     <>
@@ -204,6 +239,7 @@ export function Vacancies({
         role="search"
         onSubmit={(event) => {
           event.preventDefault();
+          setCursor(undefined);
           setQuery(input.trim());
         }}
       >
@@ -224,13 +260,14 @@ export function Vacancies({
           type="button"
           className="action desktop-only"
           aria-pressed={filters.includes("remote")}
-          onClick={() =>
+          onClick={() => {
+            setCursor(undefined);
             setFilters((current) =>
               current.includes("remote")
                 ? current.filter((filter) => filter !== "remote")
                 : [...current, "remote"],
-            )
-          }
+            );
+          }}
         >
           Удалённо
         </button>
@@ -243,13 +280,14 @@ export function Vacancies({
             key={id}
             className={`chip chip-blue filter-${id}`}
             aria-pressed={filters.includes(id)}
-            onClick={() =>
+            onClick={() => {
+              setCursor(undefined);
               setFilters((current) =>
                 current.includes(id)
                   ? current.filter((item) => item !== id)
                   : [...current, id],
-              )
-            }
+              );
+            }}
           >
             {label}
           </button>
@@ -262,16 +300,17 @@ export function Vacancies({
           <select
             aria-label="Сортировка"
             value={sort}
-            onChange={(event) =>
-              setSort(event.target.value === "salary" ? "salary" : "match")
-            }
+            onChange={(event) => {
+              setCursor(undefined);
+              setSort(event.target.value === "salary" ? "salary" : "match");
+            }}
           >
             <option value="match">по совпадению ↓</option>
             <option value="salary">по зарплате ↓</option>
           </select>
         </label>
       </div>
-      {!visible.length && (
+      {!visible.length && (!live || (result?.key === key && result.items)) && (
         <Panel>
           <h2>Вакансий пока нет</h2>
           <p>
@@ -315,6 +354,26 @@ export function Vacancies({
           </Panel>
         ))}
       </div>
+      {live && result?.key !== key && <p role="status">Загрузка вакансий…</p>}
+      {live && result?.key === key && !result.items && (
+        <p role="alert">
+          Не удалось загрузить вакансии.{" "}
+          <button
+            className="action"
+            onClick={() => {
+              setResult(undefined);
+              setAttempt(attempt + 1);
+            }}
+          >
+            Повторить
+          </button>
+        </p>
+      )}
+      {live && result?.key === key && result.nextCursor && (
+        <button className="action" onClick={() => setCursor(result.nextCursor)}>
+          Следующая страница
+        </button>
+      )}
     </>
   );
 }
@@ -331,12 +390,48 @@ const exampleLetter =
 export function VacancyDetail({
   vacancy,
   demo,
+  live = false,
 }: {
-  vacancy: Vacancy;
+  vacancy: VacancyDetails;
+  live?: boolean;
   demo: boolean;
 }) {
-  const [letter, setLetter] = useState(exampleLetter);
+  const [letter, setLetter] = useState(demo ? exampleLetter : "");
   const [prepared, setPrepared] = useState(false);
+  const [draft, setDraft] = useState<ApplicationDraft>();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const inFlight = useRef(false);
+
+  async function applyAction(action: () => Promise<void>) {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setPending(true);
+    setError(false);
+    try {
+      await action();
+    } catch {
+      setError(true);
+    } finally {
+      inFlight.current = false;
+      setPending(false);
+    }
+  }
+
+  function prepare() {
+    if (!live) {
+      setPrepared(true);
+      return;
+    }
+    void applyAction(async () => {
+      const next = await api.prepare(vacancy.id);
+      setDraft(next);
+      setLetter(next.coverLetter);
+      setPrepared(true);
+    });
+  }
+
   const hasAnalysis = demo && vacancy.id === "java-backend";
   return (
     <>
@@ -371,7 +466,18 @@ export function VacancyDetail({
               <span className="desktop-only">Почему вакансия подходит</span>
               <span className="mobile-only">Почему подходит</span>
             </h2>
-            {hasAnalysis ? (
+            {live && vacancy.analysis?.length ? (
+              <ul>
+                {vacancy.analysis.map(({ title, description }) => (
+                  <li key={title}>
+                    <div>
+                      <strong>{title}</strong>
+                      <p>{description}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : hasAnalysis ? (
               <ul>
                 {[
                   ...analysis,
@@ -430,7 +536,7 @@ export function VacancyDetail({
                 <small>
                   {demo
                     ? "Демонстрационная версия · предпросмотр"
-                    : "Резюме ещё не создано"}
+                    : (draft?.resumeName ?? "Резюме ещё не создано")}
                 </small>
               </div>
             </div>
@@ -442,13 +548,45 @@ export function VacancyDetail({
                 rows={6}
               />
             </label>
-            <button className="action" onClick={() => setLetter(exampleLetter)}>
-              Восстановить шаблон
-            </button>
-            <button className="primary" disabled>
-              Отправить отклик
-            </button>
-            <small>Отправка доступна после подключения сервера.</small>
+            {live ? (
+              <>
+                {!draft && (
+                  <button
+                    className="action"
+                    disabled={pending}
+                    onClick={prepare}
+                  >
+                    Подготовить отклик
+                  </button>
+                )}
+                <button
+                  className="primary"
+                  disabled={!draft || pending || submitted}
+                  onClick={() => {
+                    if (!draft || submitted) return;
+                    void applyAction(async () => {
+                      await api.submit(draft.id, letter);
+                      setSubmitted(true);
+                    });
+                  }}
+                >
+                  Отправить отклик
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="action"
+                  onClick={() => setLetter(exampleLetter)}
+                >
+                  Восстановить шаблон
+                </button>
+                <button className="primary" disabled>
+                  Отправить отклик
+                </button>
+                <small>Отправка доступна после подключения сервера.</small>
+              </>
+            )}
           </div>
           {!prepared && (
             <div className="mobile-only preparation-preview">
@@ -459,10 +597,16 @@ export function VacancyDetail({
           )}
         </Panel>
       </div>
+      {pending && <p role="status">Запрос выполняется…</p>}
+      {error && (
+        <p role="alert">Не удалось выполнить операцию. Попробуйте снова.</p>
+      )}
+      {submitted && <p role="status">Отклик подтверждён сервером.</p>}
       {!prepared && (
         <button
           className="primary mobile-only prepare-mobile"
-          onClick={() => setPrepared(true)}
+          onClick={prepare}
+          disabled={pending}
         >
           Подготовить отклик
         </button>
